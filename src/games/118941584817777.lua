@@ -1,10 +1,12 @@
--- World 2: +1 speed keyboard escape
+-- World 2: +1 speed keyboard escape (fixed spawn gating)
 
 return function(section, data)
     print("reached")
+
     local elements = loadstring(game:HttpGet(getgitpath("src").."elements.lua"))()
     local env = getgenv()
     local plr = game:GetService("Players").LocalPlayer
+    local HttpService = game:GetService("HttpService")
 
     env.Farming = false
     env.WinStage = 1
@@ -13,7 +15,8 @@ return function(section, data)
     setdata.farming = setdata.farming or false
     setdata.winstage = setdata.winstage or 1
     data[tostring(game.PlaceId)] = setdata
-    writefile("BrainrotPolice/Config.json", game:GetService("HttpService"):JSONEncode(data))
+
+    writefile("BrainrotPolice/Config.json", HttpService:JSONEncode(data))
 
     print("yeah")
 
@@ -30,73 +33,77 @@ return function(section, data)
     part.Anchored = true
     part.Parent = workspace
 
+    local function getSpawn()
+        local w2 = workspace:FindFirstChild("WORLD 2")
+        if not w2 then return nil end
+        local lobby = w2:FindFirstChild("Lobby")
+        if not lobby then return nil end
+        return lobby:FindFirstChild("SpawnLocation")
+    end
+
     elements:Toggle("Autofarm", section, env.Farming, function(v)
         env.Farming = v
         getgenv().setconfig("farming", v)
 
         if not v then return end
 
-        spawn(function()
+        -- speed loop
+        task.spawn(function()
             while env.Farming do
-                local args = {
-                    "Walking"
-                }
-                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("UpdateSpeed"):FireServer(unpack(args))
+                game:GetService("ReplicatedStorage")
+                    :WaitForChild("Remotes")
+                    :WaitForChild("UpdateSpeed")
+                    :FireServer("Walking")
+
                 task.wait()
             end
         end)
 
-        spawn(function()
+        -- main farm loop
+        task.spawn(function()
             while env.Farming do
                 pcall(function()
-                    -- Check if player is standing on SpawnLocation
-                    local spawnLocation = workspace:FindFirstChild("WORLD 2") and workspace["WORLD 2"]:FindFirstChild("Lobby") and workspace["WORLD 2"].Lobby:FindFirstChild("SpawnLocation")
-                    local isOnSpawn = false
-                    
-                    if spawnLocation and plr.Character:FindFirstChild("HumanoidRootPart") then
-                        local humanoidPos = plr.Character.HumanoidRootPart.Position
-                        local spawnPos = spawnLocation.Position
-                        local spawnSize = spawnLocation.Size
-                        
-                        -- Check if player is within spawn location bounds
-                        if math.abs(humanoidPos.X - spawnPos.X) <= spawnSize.X/2 and
-                           math.abs(humanoidPos.Y - spawnPos.Y) <= spawnSize.Y/2 and
-                           math.abs(humanoidPos.Z - spawnPos.Z) <= spawnSize.Z/2 then
-                            isOnSpawn = true
-                        end
+                    local char = plr.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    local hum = char and char:FindFirstChild("Humanoid")
+                    local spawn = getSpawn()
+
+                    if not hrp or not hum or not spawn then return end
+
+                    -- HARD GATE: must be on spawn before anything else
+                    local distSpawn = (hrp.Position - spawn.Position).Magnitude
+                    if distSpawn > 6 then
+                        hum:MoveTo(spawn.Position)
+                        task.wait(0.15)
+                        return
                     end
-                    
-                    -- If not on spawn, go to middle of spawn location
-                    if not isOnSpawn and spawnLocation then
-                        plr.Character.Humanoid:MoveTo(spawnLocation.Position)
-                        plr.Character.Humanoid.MoveToFinished:Wait()
-                    end
-                    
+
+                    -- stabilize movement
+                    hrp.Velocity = Vector3.zero
+
                     local checkpoint = Vector3.new(-393, 499.87, 191.03)
-                    
-                    -- Walk to first checkpoint
-                    plr.Character.Humanoid:MoveTo(checkpoint)
-                    
-                    -- Wait until 5 studs away from checkpoint
-                    while (plr.Character.HumanoidRootPart.Position - checkpoint).Magnitude > 5 do
-                        task.wait(0.01)
+
+                    hum:MoveTo(checkpoint)
+
+                    while env.Farming and hrp
+                        and (hrp.Position - checkpoint).Magnitude > 5 do
+                        task.wait(0.05)
                     end
-                    
-                    -- Stop momentum by setting velocity to 0
-                    if plr.Character:FindFirstChild("HumanoidRootPart") then
-                        plr.Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
-                        task.wait(0.1)
+
+                    if hrp then
+                        hrp.Velocity = Vector3.zero
                     end
-                    
-                    -- Walk to win block
+
                     if env.WinStage == 1 then
-                        plr.Character.Humanoid:MoveTo(workspace.Winblocks.WinBlock16.Position)
-                        plr.Character.Humanoid.MoveToFinished:Wait()
+                        local win = workspace:WaitForChild("Winblocks"):WaitForChild("WinBlock16")
+                        hum:MoveTo(win.Position)
+                        hum.MoveToFinished:Wait()
                         task.wait(1)
                     end
                 end)
+
+                task.wait(0.1)
             end
         end)
     end)
-
 end
