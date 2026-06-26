@@ -1,4 +1,4 @@
--- World 2: +1 speed keyboard escape (death restart fixed)
+-- World 2: +1 speed keyboard escape (hard respawn fix)
 
 return function(section, data)
     print("reached")
@@ -12,34 +12,16 @@ return function(section, data)
     env.WinStage = 1
 
     local char, hrp, hum
-    env._deathConn = nil
-
-    local function restartFarm()
-        if not env.Farming then return end
-
-        env.Farming = false
-        task.wait(0.2)
-        env.Farming = true
-    end
 
     local function bindCharacter(c)
         char = c
-        hrp = c:WaitForChild("HumanoidRootPart", 10)
-        hum = c:WaitForChild("Humanoid", 10)
+        hrp = nil
+        hum = nil
 
-        -- reset old connection
-        if env._deathConn then
-            env._deathConn:Disconnect()
-            env._deathConn = nil
+        if c then
+            hrp = c:WaitForChild("HumanoidRootPart", 10)
+            hum = c:WaitForChild("Humanoid", 10)
         end
-
-        -- death hook
-        env._deathConn = hum.Died:Connect(function()
-            task.spawn(function()
-                task.wait(5)
-                restartFarm()
-            end)
-        end)
     end
 
     bindCharacter(plr.Character or plr.CharacterAdded:Wait())
@@ -83,18 +65,26 @@ return function(section, data)
             end
         end)
 
-        -- main loop
+        -- main loop (respawn safe)
         task.spawn(function()
             while env.Farming do
                 pcall(function()
+
+                    -- HARD WAIT for character after respawn
+                    if not plr.Character then
+                        plr.CharacterAdded:Wait()
+                        return
+                    end
+
                     if not char or not hrp or not hum or hum.Health <= 0 then
-                        task.wait(0.2)
+                        bindCharacter(plr.Character)
                         return
                     end
 
                     local spawn = getSpawn()
                     if not spawn then return end
 
+                    -- force spawn first
                     if (hrp.Position - spawn.Position).Magnitude > 6 then
                         hum:MoveTo(spawn.Position)
                         task.wait(0.15)
@@ -107,7 +97,9 @@ return function(section, data)
 
                     hum:MoveTo(checkpoint)
 
-                    while env.Farming and hrp and (hrp.Position - checkpoint).Magnitude > 5 do
+                    while env.Farming
+                        and hrp
+                        and (hrp.Position - checkpoint).Magnitude > 7 do
                         task.wait(0.05)
                     end
 
