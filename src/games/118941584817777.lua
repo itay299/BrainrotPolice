@@ -25,9 +25,9 @@ return function(section, data)
     end)
 
     local part = Instance.new("Part")
-    part.Anchored = true
-    part.Size = Vector3.new(12, 1, 173)
     part.Position = Vector3.new(-394, 501, 6)
+    part.Size = Vector3.new(12, 1, 350)
+    part.Anchored = true
     part.Parent = workspace
 
     elements:Toggle("Autofarm", section, env.Farming, function(v)
@@ -49,10 +49,13 @@ return function(section, data)
         spawn(function()
             while env.Farming do
                 pcall(function()
-                    plr.Character.Humanoid:MoveTo(Vector3.new(-400, 189, 6))
+                    -- Walk to first checkpoint
+                    plr.Character.Humanoid:MoveTo(Vector3.new(-393, 499.87, 191.03))
                     plr.Character.Humanoid.MoveToFinished:Wait()
+                    
+                    -- Walk to win block
                     if env.WinStage == 1 then
-                        plr.Character.Humanoid:MoveTo(workspace.Structure.Stage2.WinBlock1.Position)
+                        plr.Character.Humanoid:MoveTo(workspace.Winblocks.WinBlock16.Position)
                         plr.Character.Humanoid.MoveToFinished:Wait()
                         task.wait(1)
                     end
