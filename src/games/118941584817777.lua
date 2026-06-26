@@ -49,6 +49,29 @@ return function(section, data)
         spawn(function()
             while env.Farming do
                 pcall(function()
+                    -- Check if player is standing on SpawnLocation
+                    local spawnLocation = workspace:FindFirstChild("WORLD 2") and workspace["WORLD 2"]:FindFirstChild("Lobby") and workspace["WORLD 2"].Lobby:FindFirstChild("SpawnLocation")
+                    local isOnSpawn = false
+                    
+                    if spawnLocation and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local humanoidPos = plr.Character.HumanoidRootPart.Position
+                        local spawnPos = spawnLocation.Position
+                        local spawnSize = spawnLocation.Size
+                        
+                        -- Check if player is within spawn location bounds
+                        if math.abs(humanoidPos.X - spawnPos.X) <= spawnSize.X/2 and
+                           math.abs(humanoidPos.Y - spawnPos.Y) <= spawnSize.Y/2 and
+                           math.abs(humanoidPos.Z - spawnPos.Z) <= spawnSize.Z/2 then
+                            isOnSpawn = true
+                        end
+                    end
+                    
+                    -- If not on spawn, go to middle of spawn location
+                    if not isOnSpawn and spawnLocation then
+                        plr.Character.Humanoid:MoveTo(spawnLocation.Position)
+                        plr.Character.Humanoid.MoveToFinished:Wait()
+                    end
+                    
                     local checkpoint = Vector3.new(-393, 499.87, 191.03)
                     
                     -- Walk to first checkpoint
