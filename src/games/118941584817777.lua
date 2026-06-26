@@ -1,4 +1,4 @@
--- World 2: +1 speed keyboard escape (hard respawn fix)
+-- World 2: +1 speed keyboard escape
 
 return function(section, data)
     print("reached")
@@ -7,32 +7,20 @@ return function(section, data)
     local env = getgenv()
     local plr = game:GetService("Players").LocalPlayer
     local HttpService = game:GetService("HttpService")
+    local Workspace = game:GetService("Workspace")
 
     env.Farming = false
     env.WinStage = 1
 
-    local char, hrp, hum
-
-    local function bindCharacter(c)
-        char = c
-        hrp = nil
-        hum = nil
-
-        if c then
-            hrp = c:WaitForChild("HumanoidRootPart", 10)
-            hum = c:WaitForChild("Humanoid", 10)
-        end
-    end
-
-    bindCharacter(plr.Character or plr.CharacterAdded:Wait())
-    plr.CharacterAdded:Connect(bindCharacter)
-
+    -- config
     local setdata = data[tostring(game.PlaceId)] or {}
     setdata.farming = setdata.farming or false
     setdata.winstage = setdata.winstage or 1
     data[tostring(game.PlaceId)] = setdata
 
     writefile("BrainrotPolice/Config.json", HttpService:JSONEncode(data))
+
+    print("yeah")
 
     elements:Label("Currently supports up to 1 stage.", section)
 
@@ -41,12 +29,23 @@ return function(section, data)
         getgenv().setconfig("winstage", tonumber(v))
     end)
 
-    local function getSpawn()
-        local w2 = workspace:FindFirstChild("WORLD 2")
-        local lobby = w2 and w2:FindFirstChild("Lobby")
-        return lobby and lobby:FindFirstChild("SpawnLocation")
-    end
+    ----------------------------------------------------------------
+    -- PART (guaranteed spawn test object)
+    ----------------------------------------------------------------
+    local part = Instance.new("Part")
+    part.Name = "DebugPart"
+    part.Position = Vector3.new(-394, 501, 6)
+    part.Size = Vector3.new(12, 1, 350)
+    part.Anchored = true
+    part.CanCollide = true
+    part.Color = Color3.fromRGB(255, 0, 0)
+    part.Parent = Workspace
 
+    print("Part created:", part:GetFullName())
+
+    ----------------------------------------------------------------
+    -- SPAWN CHECKPOINT FARM LOGIC
+    ----------------------------------------------------------------
     elements:Toggle("Autofarm", section, env.Farming, function(v)
         env.Farming = v
         getgenv().setconfig("farming", v)
@@ -65,28 +64,24 @@ return function(section, data)
             end
         end)
 
-        -- main loop (respawn safe)
+        -- main loop
         task.spawn(function()
             while env.Farming do
                 pcall(function()
+                    local char = plr.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    local hum = char and char:FindFirstChild("Humanoid")
 
-                    -- HARD WAIT for character after respawn
-                    if not plr.Character then
-                        plr.CharacterAdded:Wait()
-                        return
-                    end
+                    local spawnLocation =
+                        Workspace:FindFirstChild("WORLD 2")
+                        and Workspace["WORLD 2"]:FindFirstChild("Lobby")
+                        and Workspace["WORLD 2"].Lobby:FindFirstChild("SpawnLocation")
 
-                    if not char or not hrp or not hum or hum.Health <= 0 then
-                        bindCharacter(plr.Character)
-                        return
-                    end
-
-                    local spawn = getSpawn()
-                    if not spawn then return end
+                    if not char or not hrp or not hum or not spawnLocation then return end
 
                     -- force spawn first
-                    if (hrp.Position - spawn.Position).Magnitude > 6 then
-                        hum:MoveTo(spawn.Position)
+                    if (hrp.Position - spawnLocation.Position).Magnitude > 6 then
+                        hum:MoveTo(spawnLocation.Position)
                         task.wait(0.15)
                         return
                     end
@@ -97,9 +92,7 @@ return function(section, data)
 
                     hum:MoveTo(checkpoint)
 
-                    while env.Farming
-                        and hrp
-                        and (hrp.Position - checkpoint).Magnitude > 7 do
+                    while env.Farming and hrp and (hrp.Position - checkpoint).Magnitude > 5 do
                         task.wait(0.05)
                     end
 
@@ -108,7 +101,7 @@ return function(section, data)
                     end
 
                     if env.WinStage == 1 then
-                        local win = workspace:WaitForChild("Winblocks"):WaitForChild("WinBlock16")
+                        local win = Workspace:WaitForChild("Winblocks"):WaitForChild("WinBlock16")
                         hum:MoveTo(win.Position)
                         hum.MoveToFinished:Wait()
                         task.wait(1)
