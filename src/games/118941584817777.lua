@@ -1,4 +1,4 @@
--- World 2: +1 speed keyboard escape (fixed spawn gating)
+-- World 2: +1 speed keyboard escape (spawn + respawn fixed)
 
 return function(section, data)
     print("reached")
@@ -11,14 +11,23 @@ return function(section, data)
     env.Farming = false
     env.WinStage = 1
 
+    local char, hrp, hum
+
+    local function bindCharacter(c)
+        char = c
+        hrp = c:WaitForChild("HumanoidRootPart", 5)
+        hum = c:WaitForChild("Humanoid", 5)
+    end
+
+    bindCharacter(plr.Character or plr.CharacterAdded:Wait())
+    plr.CharacterAdded:Connect(bindCharacter)
+
     local setdata = data[tostring(game.PlaceId)] or {}
     setdata.farming = setdata.farming or false
     setdata.winstage = setdata.winstage or 1
     data[tostring(game.PlaceId)] = setdata
 
     writefile("BrainrotPolice/Config.json", HttpService:JSONEncode(data))
-
-    print("yeah")
 
     elements:Label("Currently supports up to 1 stage.", section)
 
@@ -27,18 +36,10 @@ return function(section, data)
         getgenv().setconfig("winstage", tonumber(v))
     end)
 
-    local part = Instance.new("Part")
-    part.Position = Vector3.new(-394, 501, 6)
-    part.Size = Vector3.new(12, 1, 350)
-    part.Anchored = true
-    part.Parent = workspace
-
     local function getSpawn()
         local w2 = workspace:FindFirstChild("WORLD 2")
-        if not w2 then return nil end
-        local lobby = w2:FindFirstChild("Lobby")
-        if not lobby then return nil end
-        return lobby:FindFirstChild("SpawnLocation")
+        local lobby = w2 and w2:FindFirstChild("Lobby")
+        return lobby and lobby:FindFirstChild("SpawnLocation")
     end
 
     elements:Toggle("Autofarm", section, env.Farming, function(v)
@@ -59,33 +60,29 @@ return function(section, data)
             end
         end)
 
-        -- main farm loop
+        -- main loop (respawn-safe)
         task.spawn(function()
             while env.Farming do
                 pcall(function()
-                    local char = plr.Character
-                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                    local hum = char and char:FindFirstChild("Humanoid")
+                    if not char or not hrp or not hum then return end
+
                     local spawn = getSpawn()
+                    if not spawn then return end
 
-                    if not hrp or not hum or not spawn then return end
-
-                    -- HARD GATE: must be on spawn before anything else
-                    local distSpawn = (hrp.Position - spawn.Position).Magnitude
-                    if distSpawn > 6 then
+                    -- must be on spawn first
+                    if (hrp.Position - spawn.Position).Magnitude > 6 then
                         hum:MoveTo(spawn.Position)
                         task.wait(0.15)
                         return
                     end
 
-                    -- stabilize movement
                     hrp.Velocity = Vector3.zero
 
                     local checkpoint = Vector3.new(-393, 499.87, 191.03)
-
                     hum:MoveTo(checkpoint)
 
-                    while env.Farming and hrp
+                    while env.Farming
+                        and hrp
                         and (hrp.Position - checkpoint).Magnitude > 5 do
                         task.wait(0.05)
                     end
