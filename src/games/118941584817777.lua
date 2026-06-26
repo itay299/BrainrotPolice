@@ -53,6 +53,12 @@ return function(section, data)
                     plr.Character.Humanoid:MoveTo(Vector3.new(-393, 499.87, 191.03))
                     plr.Character.Humanoid.MoveToFinished:Wait()
                     
+                    -- Stop momentum by setting velocity to 0
+                    if plr.Character:FindFirstChild("HumanoidRootPart") then
+                        plr.Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                        task.wait(0.1)
+                    end
+                    
                     -- Walk to win block
                     if env.WinStage == 1 then
                         plr.Character.Humanoid:MoveTo(workspace.Winblocks.WinBlock16.Position)
