@@ -46,18 +46,19 @@ return function(section, data)
             end
         end)
 
-        while env.Farming do
-            pcall(function()
-                plr.Character.Humanoid:MoveTo(Vector3.new(-400, 189, 6))
-                plr.Character.Humanoid.MoveToFinished:Wait()
-                if env.WinStage == 1 then
-                    plr.Character.Humanoid:MoveTo(workspace.Structure.Stage2.WinBlock1.Position)
+        spawn(function()
+            while env.Farming do
+                pcall(function()
+                    plr.Character.Humanoid:MoveTo(Vector3.new(-400, 189, 6))
                     plr.Character.Humanoid.MoveToFinished:Wait()
-                    task.wait(1)
-                    return
-                end
-            end)
-        end
+                    if env.WinStage == 1 then
+                        plr.Character.Humanoid:MoveTo(workspace.Structure.Stage2.WinBlock1.Position)
+                        plr.Character.Humanoid.MoveToFinished:Wait()
+                        task.wait(1)
+                    end
+                end)
+            end
+        end)
     end)
 
 end
