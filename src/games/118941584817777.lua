@@ -49,9 +49,15 @@ return function(section, data)
         spawn(function()
             while env.Farming do
                 pcall(function()
+                    local checkpoint = Vector3.new(-393, 499.87, 191.03)
+                    
                     -- Walk to first checkpoint
-                    plr.Character.Humanoid:MoveTo(Vector3.new(-393, 499.87, 191.03))
-                    plr.Character.Humanoid.MoveToFinished:Wait()
+                    plr.Character.Humanoid:MoveTo(checkpoint)
+                    
+                    -- Wait until 5 studs away from checkpoint
+                    while (plr.Character.HumanoidRootPart.Position - checkpoint).Magnitude > 5 do
+                        task.wait(0.01)
+                    end
                     
                     -- Stop momentum by setting velocity to 0
                     if plr.Character:FindFirstChild("HumanoidRootPart") then
