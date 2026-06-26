@@ -1,4 +1,4 @@
--- World 2: +1 speed keyboard escape (spawn + respawn fixed)
+-- World 2: +1 speed keyboard escape (hard respawn fix)
 
 return function(section, data)
     print("reached")
@@ -15,8 +15,13 @@ return function(section, data)
 
     local function bindCharacter(c)
         char = c
-        hrp = c:WaitForChild("HumanoidRootPart", 5)
-        hum = c:WaitForChild("Humanoid", 5)
+        hrp = nil
+        hum = nil
+
+        if c then
+            hrp = c:WaitForChild("HumanoidRootPart", 10)
+            hum = c:WaitForChild("Humanoid", 10)
+        end
     end
 
     bindCharacter(plr.Character or plr.CharacterAdded:Wait())
@@ -60,16 +65,26 @@ return function(section, data)
             end
         end)
 
-        -- main loop (respawn-safe)
+        -- main loop (respawn safe)
         task.spawn(function()
             while env.Farming do
                 pcall(function()
-                    if not char or not hrp or not hum then return end
+
+                    -- HARD WAIT for character after respawn
+                    if not plr.Character then
+                        plr.CharacterAdded:Wait()
+                        return
+                    end
+
+                    if not char or not hrp or not hum or hum.Health <= 0 then
+                        bindCharacter(plr.Character)
+                        return
+                    end
 
                     local spawn = getSpawn()
                     if not spawn then return end
 
-                    -- must be on spawn first
+                    -- force spawn first
                     if (hrp.Position - spawn.Position).Magnitude > 6 then
                         hum:MoveTo(spawn.Position)
                         task.wait(0.15)
@@ -79,6 +94,7 @@ return function(section, data)
                     hrp.Velocity = Vector3.zero
 
                     local checkpoint = Vector3.new(-393, 499.87, 191.03)
+
                     hum:MoveTo(checkpoint)
 
                     while env.Farming
