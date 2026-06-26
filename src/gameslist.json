@@ -22,5 +22,6 @@
   { "game": "+1 Health for Brainrots",                        "id": "86614757217732",   "status": "🟢" },
   { "game": "+1 Speed Evolve",                        "id": "83569851223739",   "status": "🟢" },
   { "game": "+1 Speed Keyboard Escape",                        "id": "95082159892680",   "status": "🟢" },
-  { "game": "[WORLD 2] +1 Speed Keyboard Escape",                        "id": "118941584817777",   "status": "🟢" }
+  { "game": "[WORLD 2] +1 Speed Keyboard Escape",                        "id": "118941584817777",   "status": "🟢" },
+  { "game": "[WORLD 3] +1 Speed Keyboard Escape",                        "id": "9508",   "status": "🟢" }
 ]
